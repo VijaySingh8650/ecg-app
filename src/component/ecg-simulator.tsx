@@ -82,7 +82,8 @@ const ECGSimulator: React.FC = () => {
       let tElapsed = 0;
       while (tElapsed < totalTime) {
         const base = p.b_p + p.l_pq + p.b_q + p.b_r + p.b_s + p.l_st + p.b_t + p.l_tp;
-        const heartPeriod = 60 / heartRate;
+        const safeHeartRate = Math.max(heartRate, 1);
+        const heartPeriod = 60 / safeHeartRate;
         const scale = heartPeriod / base;
 
         const s = {
