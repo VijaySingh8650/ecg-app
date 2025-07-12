@@ -6,3 +6,10 @@ export type WaveParams = {
   h_t: number; b_t: number;
   l_pq: number; l_st: number; l_tp: number;
 };
+
+export type TypeOfWaveParams = {
+
+    [key:string]: string | number;
+
+
+}
