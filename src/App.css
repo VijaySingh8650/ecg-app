@@ -30,7 +30,6 @@ h1 {
 
 .canvas-container {
   flex: 2;
-  min-width: 600px;
 }
 
 svg {
@@ -55,7 +54,13 @@ svg {
 .param-group input {
   flex: 1 0 70px;
   padding: 4px;
+  background: #ffffff;
+  color: black;
+  outline: none;
+  border: 1px solid black;
+
 }
+
 
 #applyBtn,
 #addCustomBeatBtn {
@@ -99,4 +104,12 @@ svg {
 .custom-beat-row input {
   flex: 1 0 60px;
   padding: 2px;
+}
+#removeBtn {
+  margin-top: 5px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
 }

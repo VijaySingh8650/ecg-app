@@ -48,7 +48,7 @@ const ECGSimulator: React.FC = () => {
 
   const removeCustomBeat = (index: number) => {
     setCustomBeats((prev) => prev.filter((_, i) => i !== index));
-    setUseCustomBeat(false);
+
   };
 
   useEffect(() => {
@@ -325,10 +325,10 @@ const ECGSimulator: React.FC = () => {
 
             <label htmlFor="rWaveEnabled">
          
-          Enable R Wave Pattern
+         <input id="rWaveEnabled" type="checkbox" checked={rWaveEnabled} onChange={(e) => setRWaveEnabled(e.target.checked)} />  Enable R Wave Pattern
         </label>
 
- <input id="rWaveEnabled" type="checkbox" checked={rWaveEnabled} onChange={(e) => setRWaveEnabled(e.target.checked)} />
+
         </div>
         
         <div className="param-group">
@@ -345,9 +345,9 @@ const ECGSimulator: React.FC = () => {
          <div className="param-group">
             <label htmlFor="pWaveEnabled">
          
-          Enable P Wave Pattern
+        <input id="pWaveEnabled" type="checkbox" checked={pWaveEnabled} onChange={(e) => setPWaveEnabled(e.target.checked)} />  Enable P Wave Pattern
         </label>
-         <input id="pWaveEnabled" type="checkbox" checked={pWaveEnabled} onChange={(e) => setPWaveEnabled(e.target.checked)} />
+         
 
 
          </div>
@@ -367,10 +367,10 @@ const ECGSimulator: React.FC = () => {
         <div className="param-group">
             <label htmlFor="useCustomBeatParameters">
           
-          Enable Custom Beat Sequence
+         <input id="useCustomBeatParameters" type="checkbox" checked={useCustomBeat} onChange={(e) => setUseCustomBeat(e.target.checked)} />  Enable Custom Beat Sequence
         </label>
 
-        <input id="useCustomBeatParameters" type="checkbox" checked={useCustomBeat} onChange={(e) => setUseCustomBeat(e.target.checked)} />
+       
 
         </div>
         
@@ -395,7 +395,7 @@ const ECGSimulator: React.FC = () => {
                 />
               </div>
             ))}
-            <button onClick={() => removeCustomBeat(bIdx)}>Remove Beat</button>
+            <button id="removeBtn" onClick={() => removeCustomBeat(bIdx)}>Remove Beat</button>
           </div>
         ))}
 
@@ -403,7 +403,7 @@ const ECGSimulator: React.FC = () => {
         
 
 
-        <button id="addCustomBeatBtn" onClick={addCustomBeat} disabled={customBeats?.length > 0}>+ Add Custom Beat</button>
+        <button id="addCustomBeatBtn" onClick={addCustomBeat}>+ Add Custom Beat</button>
 
         
 
