@@ -54,13 +54,7 @@ svg {
 .param-group input {
   flex: 1 0 70px;
   padding: 4px;
-  background: #ffffff;
-  color: black;
-  outline: none;
-  border: 1px solid black;
-
 }
-
 
 #applyBtn,
 #addCustomBeatBtn {
