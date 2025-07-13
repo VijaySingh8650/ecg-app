@@ -21,6 +21,16 @@ const ECGSimulator: React.FC = () => {
   const [useCustomBeat, setUseCustomBeat] = useState(false);
   const [repeatInterval, setRepeatInterval] = useState(10);
   const [customBeats, setCustomBeats] = useState<TypeOfWaveParams[][]>([]);
+  
+  const pointerX = useRef(0);
+const drawnPoints = useRef<(null | { x: number; y: number })[]>([]);
+const pathPoints = useRef<{ x: number; y: number }[]>([]);
+const lastTimestamp = useRef(0);
+const firstSweep = useRef(true);
+
+const waveformPathRef = useRef<SVGPathElement | null>(null);
+const pointerHeadRef = useRef<SVGCircleElement | null>(null);
+
 
   const handleParamChange = (value: number, index: number) => {
     const updatedParams = params.map((param, i) =>
@@ -48,10 +58,10 @@ const ECGSimulator: React.FC = () => {
 
   const removeCustomBeat = (index: number) => {
     setCustomBeats((prev) => prev.filter((_, i) => i !== index));
-
   };
 
   useEffect(() => {
+    console.log("dskhfkhkf");
     const svg = svgRef.current;
     if (!svg) return;
 
@@ -60,14 +70,11 @@ const ECGSimulator: React.FC = () => {
     const ERASE_WIDTH = 12;
 
     let animationFrameId: number;
-    let waveformPath: SVGPathElement;
-    let pointerHead: SVGCircleElement;
-    let lastTimestamp = 0;
-    let pointerX = 0;
-    let firstSweep = true;
+      firstSweep.current = true;
 
-    let pathPoints: { x: number; y: number }[] = [];
-    let drawnPoints: ({ x: number; y: number } | null)[] = [];
+
+
+
 
     svg.innerHTML = "";
 
@@ -111,7 +118,8 @@ const ECGSimulator: React.FC = () => {
 
       const baseParam = toParamObject(params);
       let tElapsed = 0;
-      let rCounter = 0, pCounter = 0;
+      let rCounter = 0,
+        pCounter = 0;
       let beatIndex = 0;
       let normalBeats = 0;
 
@@ -146,7 +154,8 @@ const ECGSimulator: React.FC = () => {
 
         const base =
           Number(curP) * (Number(current.b_p) + Number(current.l_pq)) +
-          (Number(current.b_q) + Number(current.b_r) + Number(current.b_s)) * curR +
+          (Number(current.b_q) + Number(current.b_r) + Number(current.b_s)) *
+            curR +
           Number(current.l_st) +
           Number(current.b_t) +
           Number(current.l_tp);
@@ -166,8 +175,9 @@ const ECGSimulator: React.FC = () => {
         };
 
         const times = {
-          P: Array.from({ length: Number(curP) }, (_, i) =>
-            tElapsed + i * (s.b_p + s.l_pq)
+          P: Array.from(
+            { length: Number(curP) },
+            (_, i) => tElapsed + i * (s.b_p + s.l_pq)
           ),
           Q: tElapsed + Number(curP) * (s.b_p + s.l_pq),
           R: tElapsed + Number(curP) * (s.b_p + s.l_pq) + s.b_q,
@@ -223,75 +233,120 @@ const ECGSimulator: React.FC = () => {
     const initSVG = () => {
       drawGrid();
 
-      waveformPath = document.createElementNS(
+      waveformPathRef.current = document.createElementNS(
         svg.namespaceURI,
         "path"
       ) as SVGPathElement;
-      waveformPath.setAttribute("stroke", "#2c3e50");
-      waveformPath.setAttribute("fill", "none");
-      waveformPath.setAttribute("stroke-width", "2");
-      svg.appendChild(waveformPath);
+      waveformPathRef.current.setAttribute("stroke", "#2c3e50");
+      waveformPathRef.current.setAttribute("fill", "none");
+      waveformPathRef.current.setAttribute("stroke-width", "2");
+      svg.appendChild(waveformPathRef.current);
 
-      pointerHead = document.createElementNS(
+      pointerHeadRef.current = document.createElementNS(
         svg.namespaceURI,
         "circle"
       ) as SVGCircleElement;
-      pointerHead.setAttribute("r", `${POINTER_RADIUS}`);
-      pointerHead.setAttribute("fill", "#fff");
-      pointerHead.setAttribute("stroke", "#000");
-      pointerHead.setAttribute("stroke-width", "1");
-      svg.appendChild(pointerHead);
+      pointerHeadRef.current.setAttribute("r", `${POINTER_RADIUS}`);
+      pointerHeadRef.current.setAttribute("fill", "#fff");
+      pointerHeadRef.current.setAttribute("stroke", "#000");
+      pointerHeadRef.current.setAttribute("stroke-width", "1");
+      svg.appendChild(pointerHeadRef.current);
     };
 
     const animate = (ts: number) => {
       const w = svg.clientWidth;
-      const dt = lastTimestamp ? (ts - lastTimestamp) / 1000 : 0;
-      lastTimestamp = ts;
-      pointerX += PIXELS_PER_SECOND * dt;
+      const dt = lastTimestamp.current ? (ts - lastTimestamp.current) / 1000 : 0;
+      lastTimestamp.current = ts;
+      pointerX.current += PIXELS_PER_SECOND * dt;
 
-      let idx = pathPoints.findIndex((pt) => pt.x >= pointerX);
-      if (idx < 0) idx = pathPoints.length - 1;
+      let idx = pathPoints.current.findIndex((pt) => pt.x >= pointerX.current);
+      if (idx < 0) idx = pathPoints.current.length - 1;
 
-      if (firstSweep) {
-        drawnPoints = pathPoints.slice(0, idx + 1);
-        waveformPath.setAttribute(
-          "d",
-          pointsToPath(
-            drawnPoints.filter((pt): pt is { x: number; y: number } => pt !== null)
-          )
-        );
-        if (pointerX > w) firstSweep = false;
+      if (firstSweep.current) {
+        drawnPoints.current = pathPoints.current.slice(0, idx + 1);
+        if (waveformPathRef.current) {
+          if (waveformPathRef.current) {
+            waveformPathRef.current.setAttribute(
+              "d",
+              pointsToPath(
+                drawnPoints.current.filter(
+                  (pt): pt is { x: number; y: number } => pt !== null
+                )
+              )
+            );
+          }
+        }
+        if (pointerX.current > w) firstSweep.current = false;
       } else {
-        if (pointerX > w) {
-          pointerX = 0;
-          pathPoints = generateWaveform();
+        if (pointerX.current > w) {
+          pointerX.current = 0;
+          pathPoints.current = generateWaveform();
         }
-        const es = pointerX - ERASE_WIDTH / 2;
-        const ee = pointerX + ERASE_WIDTH / 2;
-        const si = drawnPoints.findIndex((pt) => pt && pt.x >= es);
-        const ei = drawnPoints.findIndex((pt) => pt && pt.x > ee);
-        for (let i = si < 0 ? 0 : si; i < (ei < 0 ? drawnPoints.length : ei); i++) {
-          drawnPoints[i] = pathPoints[i];
+        const es = pointerX.current - ERASE_WIDTH / 2;
+        const ee = pointerX.current + ERASE_WIDTH / 2;
+        const si = drawnPoints.current.findIndex((pt) => pt && pt.x >= es);
+        const ei = drawnPoints.current.findIndex((pt) => pt && pt.x > ee);
+        for (
+          let i = si < 0 ? 0 : si;
+          i < (ei < 0 ? drawnPoints.current.length : ei);
+          i++
+        ) {
+          drawnPoints.current[i] = pathPoints.current[i];
         }
-        waveformPath.setAttribute("d", pointsToPath(drawnPoints.filter(Boolean) as { x: number; y: number }[]));
+        if (waveformPathRef.current) {
+          waveformPathRef.current.setAttribute(
+            "d",
+            pointsToPath(
+              drawnPoints.current.filter(Boolean) as { x: number; y: number }[]
+            )
+          );
+        }
       }
 
-      const cur = pathPoints[idx];
-      if (cur) {
-        pointerHead.setAttribute("cx", `${cur.x}`);
-        pointerHead.setAttribute("cy", `${cur.y}`);
+      const cur = pathPoints.current[idx];
+      if (cur && pointerHeadRef.current) {
+        pointerHeadRef.current.setAttribute("cx", `${cur.x}`);
+        pointerHeadRef.current.setAttribute("cy", `${cur.y}`);
       }
 
       animationFrameId = requestAnimationFrame(animate);
     };
 
-    initSVG();
-    pathPoints = generateWaveform();
-    drawnPoints = Array(pathPoints.length).fill(null);
+    if (firstSweep.current) {
+
+      initSVG();
+    }
+
+    const currentPointerX = pointerX.current;
+    // const currentDrawnPoints = drawnPoints.current.length
+    //   ? drawnPoints.current
+    //   : Array(pathPoints.current.length).fill(null);
+
+
+    const frozenDrawnPoints = drawnPoints.current.map(pt => pt ? { ...pt } : null);
+
+    pathPoints.current = generateWaveform();
+    drawnPoints.current = frozenDrawnPoints;
+    pointerX.current = currentPointerX;
     animationFrameId = requestAnimationFrame(animate);
 
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [applyTrigger]);
+    return () => {
+        cancelAnimationFrame(animationFrameId);
+        lastTimestamp.current = 0;
+    }
+  }, [applyTrigger,
+  params,
+  heartRate,
+  customBeats,
+  useCustomBeat,
+  repeatInterval,
+  rWaveEnabled,
+  rWaveCount,
+  rWaveInterval,
+  pWaveEnabled,
+  pWaveCount,
+  pWaveInterval,
+  pixelsPerMv]);
 
   return (
     <div className="container">
@@ -299,11 +354,21 @@ const ECGSimulator: React.FC = () => {
         <h3>ECG Parameters</h3>
         <div className="param-group">
           <label htmlFor="heart_rate">Heart Rate (bpm):</label>
-          <input id="heart_rate" type="number" value={heartRate} onChange={(e) => setHeartRate(+e.target.value)} />
+          <input
+            id="heart_rate"
+            type="number"
+            value={heartRate}
+            onChange={(e) => setHeartRate(+e.target.value)}
+          />
         </div>
         <div className="param-group">
           <label htmlFor="pixelsPerMv">Pixels per mV:</label>
-          <input id="pixelsPerMv" type="number" value={pixelsPerMv} onChange={(e) => setPixelsPerMv(+e.target.value)} />
+          <input
+            id="pixelsPerMv"
+            type="number"
+            value={pixelsPerMv}
+            onChange={(e) => setPixelsPerMv(+e.target.value)}
+          />
         </div>
 
         <h3>Wave Parameters (mV, sec)</h3>
@@ -322,92 +387,125 @@ const ECGSimulator: React.FC = () => {
 
         <h3>Dynamic R Wave Pattern</h3>
         <div className="param-group">
-
-            <label htmlFor="rWaveEnabled">
-         
-         <input id="rWaveEnabled" type="checkbox" checked={rWaveEnabled} onChange={(e) => setRWaveEnabled(e.target.checked)} />  Enable R Wave Pattern
-        </label>
-
-
+          <label htmlFor="rWaveEnabled">
+            <input
+              id="rWaveEnabled"
+              type="checkbox"
+              checked={rWaveEnabled}
+              onChange={(e) => setRWaveEnabled(e.target.checked)}
+            />{" "}
+            Enable R Wave Pattern
+          </label>
         </div>
-        
+
         <div className="param-group">
           <label htmlFor="rWaveCount">R Waves in Pattern:</label>
-          <input id="rWaveCount" type="number" value={rWaveCount} onChange={(e) => setRWaveCount(+e.target.value)} />
+          <input
+            id="rWaveCount"
+            type="number"
+            value={rWaveCount}
+            onChange={(e) => setRWaveCount(+e.target.value)}
+          />
         </div>
 
         <div className="param-group">
           <label htmlFor="rWaveInterval">Apply After N QRS:</label>
-          <input id="rWaveInterval" type="number" value={rWaveInterval} onChange={(e) => setRWaveInterval(+e.target.value)} />
+          <input
+            id="rWaveInterval"
+            type="number"
+            value={rWaveInterval}
+            onChange={(e) => setRWaveInterval(+e.target.value)}
+          />
         </div>
 
         <h3>Dynamic P Wave Pattern</h3>
-         <div className="param-group">
-            <label htmlFor="pWaveEnabled">
-         
-        <input id="pWaveEnabled" type="checkbox" checked={pWaveEnabled} onChange={(e) => setPWaveEnabled(e.target.checked)} />  Enable P Wave Pattern
-        </label>
-         
-
-
-         </div>
-        
+        <div className="param-group">
+          <label htmlFor="pWaveEnabled">
+            <input
+              id="pWaveEnabled"
+              type="checkbox"
+              checked={pWaveEnabled}
+              onChange={(e) => setPWaveEnabled(e.target.checked)}
+            />{" "}
+            Enable P Wave Pattern
+          </label>
+        </div>
 
         <div className="param-group">
           <label htmlFor="pWaveCount">P Waves in Pattern:</label>
-          <input id="pWaveCount" type="number" value={pWaveCount} onChange={(e) => setPWaveCount(+e.target.value)} />
+          <input
+            id="pWaveCount"
+            type="number"
+            value={pWaveCount}
+            onChange={(e) => setPWaveCount(+e.target.value)}
+          />
         </div>
 
         <div className="param-group">
           <label htmlFor="pWaveInterval">Apply After N QRS:</label>
-          <input id="pWaveInterval" type="number" value={pWaveInterval} onChange={(e) => setPWaveInterval(+e.target.value)} />
+          <input
+            id="pWaveInterval"
+            type="number"
+            value={pWaveInterval}
+            onChange={(e) => setPWaveInterval(+e.target.value)}
+          />
         </div>
 
         <h3>Custom Beat Sequence</h3>
         <div className="param-group">
-            <label htmlFor="useCustomBeatParameters">
-          
-         <input id="useCustomBeatParameters" type="checkbox" checked={useCustomBeat} onChange={(e) => setUseCustomBeat(e.target.checked)} />  Enable Custom Beat Sequence
-        </label>
-
-       
-
+          <label htmlFor="useCustomBeatParameters">
+            <input
+              id="useCustomBeatParameters"
+              type="checkbox"
+              checked={useCustomBeat}
+              onChange={(e) => setUseCustomBeat(e.target.checked)}
+            />{" "}
+            Enable Custom Beat Sequence
+          </label>
         </div>
-        
+
         <div className="param-group">
           <label htmlFor="repeatInterval">Normal Beats Before Repeat:</label>
-          <input id="repeatInterval" type="number" value={repeatInterval} onChange={(e) => setRepeatInterval(+e.target.value)} />
+          <input
+            id="repeatInterval"
+            type="number"
+            value={repeatInterval}
+            onChange={(e) => setRepeatInterval(+e.target.value)}
+          />
         </div>
         <div id="customBeatsContainer">
-
-            {customBeats.map((beat, bIdx) => (
-          <div key={beat[0].id as string} className="custom-beat-row">
-            {beat.map((param, pIdx) => (
-              <div key={param.id} className="param-group">
-                <label>{param.title}:</label>
-                <input
-                  type="number"
-                  value={param.value}
-                  step={param.step}
-                  onChange={(e) =>
-                    updateCustomBeat(bIdx, +e.target.value, pIdx)
-                  }
-                />
-              </div>
-            ))}
-            <button id="removeBtn" onClick={() => removeCustomBeat(bIdx)}>Remove Beat</button>
-          </div>
-        ))}
-
+          {customBeats.map((beat, bIdx) => (
+            <div key={beat[0].id as string} className="custom-beat-row">
+              {beat.map((param, pIdx) => (
+                <div key={param.id} className="param-group">
+                  <label>{param.title}:</label>
+                  <input
+                    type="number"
+                    value={param.value}
+                    step={param.step}
+                    onChange={(e) =>
+                      updateCustomBeat(bIdx, +e.target.value, pIdx)
+                    }
+                  />
+                </div>
+              ))}
+              <button id="removeBtn" onClick={() => removeCustomBeat(bIdx)}>
+                Remove Beat
+              </button>
+            </div>
+          ))}
         </div>
-        
 
+        <button id="addCustomBeatBtn" onClick={addCustomBeat}>
+          + Add Custom Beat
+        </button>
 
-        <button id="addCustomBeatBtn" onClick={addCustomBeat}>+ Add Custom Beat</button>
-
-        
-
-        <button id="applyBtn" onClick={() => setApplyTrigger((prev) => prev + 1)}>Apply Changes</button>
+        <button
+          id="applyBtn"
+          onClick={() => setApplyTrigger((prev) => prev + 1)}
+        >
+          Apply Changes
+        </button>
       </div>
 
       <div className="canvas-container">
